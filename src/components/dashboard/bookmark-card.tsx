@@ -6,6 +6,7 @@ interface Bookmark {
   url: string;
   thumbnail?: string | null;
   favicon?: string | null;
+  remark?: string | null;
 }
 
 interface Props {
@@ -16,13 +17,15 @@ interface Props {
 
 export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
   return (
-    <a
-      href={bookmark.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="block group relative bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition"
-    >
-      {/* Thumbnail */}
+    <div className="block group relative bg-white rounded-md shadow-sm border hover:shadow-lg hover:z-10 transition-all duration-200 hover:-translate-y-1">
+      <a
+        href={bookmark.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+        title={bookmark.remark || bookmark.title}
+      >
+      {/* Thumbnail - smaller size */}
       <div className="aspect-video bg-gray-100 relative">
         {bookmark.thumbnail ? (
           <img
@@ -39,14 +42,14 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
               <img
                 src={bookmark.favicon}
                 alt=""
-                className="w-8 h-8"
+                className="w-5 h-5"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
             ) : (
               <svg
-                className="w-8 h-8"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -63,17 +66,17 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
         )}
 
         {/* Action buttons - show on hover */}
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition flex gap-1">
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onEdit(bookmark);
             }}
-            className="p-1.5 bg-white/90 rounded-md shadow-sm hover:bg-white"
+            className="p-1 bg-white/90 rounded shadow-sm hover:bg-white"
           >
             <svg
-              className="w-4 h-4"
+              className="w-3 h-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -92,10 +95,10 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
               e.stopPropagation();
               onDelete(bookmark.id);
             }}
-            className="p-1.5 bg-white/90 rounded-md shadow-sm hover:bg-white text-red-500"
+            className="p-1 bg-white/90 rounded shadow-sm hover:bg-white text-red-500"
           >
             <svg
-              className="w-4 h-4"
+              className="w-3 h-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -112,11 +115,19 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
       </div>
 
       {/* Title */}
-      <div className="p-2">
-        <h3 className="text-sm font-medium truncate" title={bookmark.title}>
+      <div className="p-1.5">
+        <h3 className="text-xs font-medium truncate" title={bookmark.title}>
           {bookmark.title}
         </h3>
       </div>
-    </a>
+
+      {/* Remark tooltip on hover */}
+      {bookmark.remark && (
+        <div className="absolute left-0 right-0 bottom-full mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-normal z-20">
+          {bookmark.remark}
+        </div>
+      )}
+      </a>
+    </div>
   );
 }

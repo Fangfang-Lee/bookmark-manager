@@ -22,6 +22,7 @@ interface Bookmark {
   url: string;
   thumbnail?: string | null;
   favicon?: string | null;
+  remark?: string | null;
   categoryId?: string | null;
   category?: Category | null;
 }
@@ -119,6 +120,7 @@ export default function DashboardPage() {
   const handleSaveBookmark = async (data: {
     url: string;
     title: string;
+    remark: string;
     categoryId: string | null;
   }) => {
     const method = editingBookmark?.id ? "PUT" : "POST";
@@ -215,7 +217,7 @@ export default function DashboardPage() {
             No bookmarks yet. Click &quot;Add Bookmark&quot; to get started.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
             {bookmarks.map((bookmark) => (
               <BookmarkCard
                 key={bookmark.id}

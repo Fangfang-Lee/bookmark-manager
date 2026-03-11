@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { fetchPreview } from "@/lib/preview";
+import { analyzePage } from "@/lib/ai";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { url, title, categoryId } = await request.json();
+  const { url, title, categoryId, remark } = await request.json();
 
   if (!url) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
@@ -43,6 +44,13 @@ export async function POST(request: Request) {
 
   // Fetch preview
   const preview = await fetchPreview(url);
+
+  // Analyze page to generate remark if not provided
+  let finalRemark = remark;
+  if (!finalRemark) {
+    const analysis = await analyzePage(url);
+    finalRemark = analysis.remark;
+  }
 
   const lastBookmark = await prisma.bookmark.findFirst({
     where: { userId: session.user.id },
@@ -57,6 +65,7 @@ export async function POST(request: Request) {
       categoryId: categoryId || null,
       favicon: preview.favicon,
       thumbnail: preview.image,
+      remark: finalRemark || null,
       order: lastBookmark ? lastBookmark.order + 1 : 0,
     },
   });

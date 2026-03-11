@@ -12,6 +12,7 @@ interface Bookmark {
   id?: string;
   url: string;
   title: string;
+  remark?: string | null;
   categoryId?: string | null;
 }
 
@@ -19,7 +20,7 @@ interface Props {
   categories: Category[];
   bookmark?: Bookmark;
   onClose: () => void;
-  onSave: (data: { url: string; title: string; categoryId: string | null }) => void;
+  onSave: (data: { url: string; title: string; remark: string; categoryId: string | null }) => void;
 }
 
 export function AddBookmarkModal({
@@ -30,10 +31,37 @@ export function AddBookmarkModal({
 }: Props) {
   const [url, setUrl] = useState(bookmark?.url || "");
   const [title, setTitle] = useState(bookmark?.title || "");
+  const [remark, setRemark] = useState(bookmark?.remark || "");
   const [categoryId, setCategoryId] = useState(
     bookmark?.categoryId || ""
   );
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const handleAnalyze = async () => {
+    if (!url) return;
+
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/bookmarks/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRemark(data.remark || "");
+        if (!title && data.title) {
+          setTitle(data.title);
+        }
+      }
+    } catch (error) {
+      console.error("Analysis failed:", error);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,27 +69,38 @@ export function AddBookmarkModal({
     onSave({
       url,
       title,
+      remark,
       categoryId: categoryId || null,
     });
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">
           {bookmark?.id ? "Edit Bookmark" : "Add Bookmark"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">URL</label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-              placeholder="https://example.com"
-              required
-            />
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="flex-1 px-3 py-2 border rounded-md"
+                placeholder="https://example.com"
+                required
+              />
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={!url || analyzing}
+                className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 text-sm whitespace-nowrap"
+              >
+                {analyzing ? "Analyzing..." : "AI Analyze"}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -74,6 +113,20 @@ export function AddBookmarkModal({
               className="w-full px-3 py-2 border rounded-md"
               placeholder="Auto-fetched if empty"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Remark (AI generated, editable)
+            </label>
+            <textarea
+              value={remark}
+              onChange={(e) => setRemark(e.target.value.slice(0, 50))}
+              className="w-full px-3 py-2 border rounded-md resize-none"
+              placeholder="AI will auto-generate a brief description..."
+              rows={2}
+              maxLength={50}
+            />
+            <p className="text-xs text-gray-500 mt-1">{remark.length}/50</p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Category</label>

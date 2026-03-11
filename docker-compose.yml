@@ -1,18 +1,16 @@
-version: '3.8'
-
 services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/bookmark_manager
       - NEXTAUTH_SECRET=development-secret-change-in-production
-      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_URL=http://localhost:3001
+      - AI_API_KEY=sk-cp-VdY1IuB0iSPuUz2CAWVYOot-IAUgR3qMSV0xCPHncshrC5Vd1mv-6oMBfd8jXGNnbFJ13gKA2BAeqR0MbhscKHlQXlY0Cq0bFjpYjPCGNtUYSHXAywBIgUM
+      - AI_API_URL=https://api.minimax.chat/v1/text/chatcompletion_pro
     depends_on:
       - db
-    volumes:
-      - ./.env:/app/.env
 
   db:
     image: postgres:15-alpine
@@ -21,7 +19,7 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=bookmark_manager
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
