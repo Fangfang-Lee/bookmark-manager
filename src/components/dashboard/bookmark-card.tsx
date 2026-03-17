@@ -74,6 +74,13 @@ export function BookmarkCard({ bookmark, onEdit, onDelete, onClick }: Props) {
           </div>
         )}
 
+        {/* Click count badge */}
+        {bookmark.clickCount !== undefined && bookmark.clickCount > 0 && (
+          <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded">
+            {bookmark.clickCount}
+          </div>
+        )}
+
         {/* Action buttons - show on hover */}
         <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition flex gap-1">
           <button
@@ -128,11 +135,6 @@ export function BookmarkCard({ bookmark, onEdit, onDelete, onClick }: Props) {
         <h3 className="text-xs font-medium truncate" title={bookmark.title}>
           {bookmark.title}
         </h3>
-        {bookmark.clickCount !== undefined && bookmark.clickCount > 0 && (
-          <div className="text-xs text-gray-400 mt-0.5">
-            {bookmark.clickCount} 次点击
-          </div>
-        )}
       </div>
 
       {/* Remark tooltip on hover */}
