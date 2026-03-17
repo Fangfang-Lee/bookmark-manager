@@ -7,15 +7,23 @@ interface Bookmark {
   thumbnail?: string | null;
   favicon?: string | null;
   remark?: string | null;
+  clickCount?: number;
 }
 
 interface Props {
   bookmark: Bookmark;
   onEdit: (bookmark: Bookmark) => void;
   onDelete: (id: string) => void;
+  onClick?: (bookmark: Bookmark) => void;
 }
 
-export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
+export function BookmarkCard({ bookmark, onEdit, onDelete, onClick }: Props) {
+  const handleClick = () => {
+    if (onClick) {
+      onClick(bookmark);
+    }
+  };
+
   return (
     <div className="block group relative bg-white rounded-md shadow-sm border hover:shadow-lg hover:z-10 transition-all duration-200 hover:-translate-y-1">
       <a
@@ -24,6 +32,7 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
         rel="noopener noreferrer"
         className="block"
         title={bookmark.remark || bookmark.title}
+        onClick={handleClick}
       >
       {/* Thumbnail - smaller size */}
       <div className="aspect-video bg-gray-100 relative">
@@ -119,6 +128,11 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
         <h3 className="text-xs font-medium truncate" title={bookmark.title}>
           {bookmark.title}
         </h3>
+        {bookmark.clickCount !== undefined && bookmark.clickCount > 0 && (
+          <div className="text-xs text-gray-400 mt-0.5">
+            {bookmark.clickCount} 次点击
+          </div>
+        )}
       </div>
 
       {/* Remark tooltip on hover */}

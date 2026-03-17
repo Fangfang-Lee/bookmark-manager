@@ -5,6 +5,41 @@ import { authOptions } from "@/lib/auth";
 import { fetchPreview } from "@/lib/preview";
 import { analyzePage } from "@/lib/ai";
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const bookmark = await prisma.bookmark.findFirst({
+    where: { id, userId: session.user.id },
+  });
+
+  if (!bookmark) {
+    return NextResponse.json({ error: "Bookmark not found" }, { status: 404 });
+  }
+
+  const { action } = await request.json();
+
+  // Handle click count increment
+  if (action === "incrementClick") {
+    const updated = await prisma.bookmark.update({
+      where: { id },
+      data: {
+        clickCount: { increment: 1 },
+      },
+    });
+    return NextResponse.json(updated);
+  }
+
+  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

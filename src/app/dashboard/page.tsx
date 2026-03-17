@@ -23,6 +23,7 @@ interface Bookmark {
   thumbnail?: string | null;
   favicon?: string | null;
   remark?: string | null;
+  clickCount?: number;
   categoryId?: string | null;
   category?: Category | null;
 }
@@ -44,6 +45,8 @@ export default function DashboardPage() {
   const [editingBookmark, setEditingBookmark] = useState<
     Bookmark | undefined
   >();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -56,7 +59,7 @@ export default function DashboardPage() {
       fetchCategories();
       fetchBookmarks();
     }
-  }, [session, selectedCategory]);
+  }, [session, selectedCategory, searchQuery, sortOrder]);
 
   const fetchCategories = async () => {
     const res = await fetch("/api/categories");
@@ -67,9 +70,12 @@ export default function DashboardPage() {
   };
 
   const fetchBookmarks = async () => {
-    const url = selectedCategory
-      ? `/api/bookmarks?categoryId=${selectedCategory}`
-      : "/api/bookmarks";
+    const params = new URLSearchParams();
+    if (selectedCategory) params.set("categoryId", selectedCategory);
+    if (searchQuery) params.set("search", searchQuery);
+    params.set("sort", sortOrder);
+
+    const url = `/api/bookmarks?${params.toString()}`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
@@ -151,6 +157,17 @@ export default function DashboardPage() {
     }
   };
 
+  const handleBookmarkClick = async (bookmark: Bookmark) => {
+    // Increment click count
+    await fetch(`/api/bookmarks/${bookmark.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "incrementClick" }),
+    });
+    // Refresh to show updated click count
+    fetchBookmarks();
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,8 +200,8 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* Add bookmark button */}
-        <div className="mb-4">
+        {/* Add bookmark button and search/sort controls */}
+        <div className="mb-4 flex flex-wrap gap-3 items-center">
           <button
             onClick={() => {
               setEditingBookmark(undefined);
@@ -194,6 +211,25 @@ export default function DashboardPage() {
           >
             + Add Bookmark
           </button>
+
+          {/* Search input */}
+          <input
+            type="text"
+            placeholder="搜索标题或备注..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 min-w-[200px] px-3 py-2 border rounded-md text-sm"
+          />
+
+          {/* Sort select */}
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+            className="px-3 py-2 border rounded-md text-sm"
+          >
+            <option value="desc">点击次数：从高到低</option>
+            <option value="asc">点击次数：从低到高</option>
+          </select>
         </div>
 
         {/* Categories */}
@@ -227,6 +263,7 @@ export default function DashboardPage() {
                   setShowBookmarkModal(true);
                 }}
                 onDelete={handleDeleteBookmark}
+                onClick={handleBookmarkClick}
               />
             ))}
           </div>

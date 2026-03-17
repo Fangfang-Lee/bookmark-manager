@@ -14,16 +14,26 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const categoryId = searchParams.get("categoryId");
+  const search = searchParams.get("search");
+  const sort = searchParams.get("sort"); // "asc" or "desc" for clickCount
 
   const bookmarks = await prisma.bookmark.findMany({
     where: {
       userId: session.user.id,
       ...(categoryId && { categoryId }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+          { remark: { contains: search, mode: "insensitive" } },
+        ],
+      }),
     },
     include: {
       category: true,
     },
-    orderBy: { order: "asc" },
+    orderBy: sort === "asc"
+      ? { clickCount: "asc" }
+      : { clickCount: "desc" },
   });
 
   return NextResponse.json(bookmarks);
