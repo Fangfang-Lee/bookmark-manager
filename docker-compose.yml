@@ -4,24 +4,8 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/bookmark_manager
+      - DATABASE_URL=postgresql://neondb_owner:npg_VHZiyn0L1JqT@ep-spring-smoke-a4e2nkx9-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
       - NEXTAUTH_SECRET=development-secret-change-in-production
       - NEXTAUTH_URL=http://localhost:3001
       - AI_API_KEY=sk-cp-VdY1IuB0iSPuUz2CAWVYOot-IAUgR3qMSV0xCPHncshrC5Vd1mv-6oMBfd8jXGNnbFJ13gKA2BAeqR0MbhscKHlQXlY0Cq0bFjpYjPCGNtUYSHXAywBIgUM
       - AI_API_URL=https://api.minimax.chat/v1/text/chatcompletion_pro
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bookmark_manager
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:

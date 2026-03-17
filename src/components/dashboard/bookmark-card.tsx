@@ -42,14 +42,14 @@ export function BookmarkCard({ bookmark, onEdit, onDelete }: Props) {
               <img
                 src={bookmark.favicon}
                 alt=""
-                className="w-5 h-5"
+                className="w-8 h-8"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
             ) : (
               <svg
-                className="w-5 h-5"
+                className="w-8 h-8"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
