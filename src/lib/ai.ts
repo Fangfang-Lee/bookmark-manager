@@ -66,41 +66,41 @@ async function generateRemarkWithAI(
 ): Promise<string> {
   try {
     const apiKey = process.env.AI_API_KEY;
+    const apiUrl = process.env.AI_API_URL || "https://code.newcli.com/claude/ultra";
 
     if (!apiKey) {
       return createSimpleRemark(title, description);
     }
 
-    // Try v1 text generation first
-    try {
-      const response = await axios.post(
-        "https://api.minimax.chat/v1/text/chatcompletion_v2",
-        {
-          model: "abab6.5s-chat",
-          messages: [
-            {
-              role: "user",
-              content: `请根据以下网页信息，用50字以内的一句话描述这个网页的核心功能或用途。\n\n网页标题: ${title}\n网页描述: ${description}\n\n请直接输出描述，不要有前缀或引号。`,
-            },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
+    // Call Claude API
+    const response = await axios.post(
+      apiUrl,
+      {
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 100,
+        messages: [
+          {
+            role: "user",
+            content: `请根据以下网页信息，用50字以内的一句话描述这个网页的核心功能或用途。\n\n网页标题: ${title}\n网页描述: ${description}\n\n请直接输出描述，不要有前缀或引号。`,
           },
-        }
-      );
-
-      if (response.data?.choices?.[0]?.message?.content) {
-        let remark = response.data.choices[0].message.content.trim();
-        if (remark.length > 50) {
-          remark = remark.slice(0, 47) + "...";
-        }
-        return remark;
+        ],
+      },
+      {
+        headers: {
+          "x-api-key": apiKey,
+          "Content-Type": "application/json",
+          "anthropic-version": "2023-06-01",
+        },
       }
-    } catch (e) {
-      console.log("V2 API failed, trying V1...");
+    );
+
+    // Claude API response format: { content: [{ type: "text", text: "..." }] }
+    if (response.data?.content?.[0]?.text) {
+      let remark = response.data.content[0].text.trim();
+      if (remark.length > 50) {
+        remark = remark.slice(0, 47) + "...";
+      }
+      return remark;
     }
 
     // Fallback to simple extraction
