@@ -7,7 +7,7 @@ interface AnalyzeResult {
 /**
  * Fetch page content using Jina.ai Reader (better for antibot sites)
  */
-async function fetchPageContent(url: string): Promise<{ title: string; description: string }> {
+async function fetchPageContent(url: string): Promise<{ title: string; content: string }> {
   try {
     const response = await axios.get(`https://r.jina.ai/${url}`, {
       headers: {
@@ -16,20 +16,25 @@ async function fetchPageContent(url: string): Promise<{ title: string; descripti
       timeout: 15000,
     });
 
-    const content = response.data as string;
+    const rawContent = response.data as string;
 
     // Extract title from markdown (first # heading)
-    const titleMatch = content.match(/^#\s+(.+?)(?:\s*\|.+)?$/m);
+    const titleMatch = rawContent.match(/^#\s+(.+?)(?:\s*\|.+)?$/m);
     const title = titleMatch ? titleMatch[1].trim() : "";
 
-    // Extract description from first paragraph after title
-    const lines = content.split("\n").filter((line: string) => line.trim() && !line.startsWith("#") && !line.startsWith("[") && !line.startsWith("!"));
-    const description = lines[0]?.trim() || "";
+    // Get first 500 chars of meaningful content for AI analysis
+    const cleanedContent = rawContent
+      .replace(/!\[.*?\]\(.*?\)/g, "") // Remove images
+      .replace(/\[.*?\]\(.*?\)/g, "") // Remove links
+      .replace(/^#+\s.*$/gm, "") // Remove headings
+      .replace(/\n+/g, " ") // Replace newlines with space
+      .trim()
+      .slice(0, 500);
 
-    return { title, description };
+    return { title, content: cleanedContent };
   } catch (error) {
     console.error("Jina.ai fetch error:", error);
-    return { title: "", description: "" };
+    return { title: "", content: "" };
   }
 }
 
@@ -40,16 +45,16 @@ async function fetchPageContent(url: string): Promise<{ title: string; descripti
 export async function analyzePage(url: string): Promise<AnalyzeResult> {
   try {
     // Fetch page content using Jina.ai Reader
-    const { title, description } = await fetchPageContent(url);
+    const { title, content } = await fetchPageContent(url);
 
     // If we have AI API key, use it to generate a remark
     if (process.env.AI_API_KEY) {
-      const remark = await generateRemarkWithAI(title, description, url);
+      const remark = await generateRemarkWithAI(title, content, url);
       return { remark };
     }
 
-    // Otherwise, create a simple remark from title/description
-    return { remark: createSimpleRemark(title, description) };
+    // Otherwise, create a simple remark from title
+    return { remark: createSimpleRemark(title) };
   } catch (error) {
     console.error("Page analysis error:", error);
     return { remark: "" };
@@ -61,15 +66,15 @@ export async function analyzePage(url: string): Promise<AnalyzeResult> {
  */
 async function generateRemarkWithAI(
   title: string,
-  description: string,
+  content: string,
   url: string
 ): Promise<string> {
   try {
     const apiKey = process.env.AI_API_KEY;
-    const apiUrl = process.env.AI_API_URL || "https://code.newcli.com/claude/ultra";
+    const apiUrl = process.env.AI_API_URL || "https://code.newcli.com/claude/ultra/v1/messages";
 
     if (!apiKey) {
-      return createSimpleRemark(title, description);
+      return createSimpleRemark(title);
     }
 
     // Call Claude API
@@ -81,7 +86,7 @@ async function generateRemarkWithAI(
         messages: [
           {
             role: "user",
-            content: `请根据以下网页信息，用50字以内的一句话描述这个网页的核心功能或用途。\n\n网页标题: ${title}\n网页描述: ${description}\n\n请直接输出描述，不要有前缀或引号。`,
+            content: `简洁介绍这个网站的核心功能，不超过30字，直接输出结果。\n\n网站: ${title}\n简介: ${content}`,
           },
         ],
       },
@@ -104,24 +109,16 @@ async function generateRemarkWithAI(
     }
 
     // Fallback to simple extraction
-    return createSimpleRemark(title, description);
+    return createSimpleRemark(title);
   } catch (error) {
     console.error("AI remark generation error:", error);
-    return createSimpleRemark(title, description);
+    return createSimpleRemark(title);
   }
 }
 
 /**
- * Create a simple remark from title and description
+ * Create a simple remark from title
  */
-function createSimpleRemark(title: string, description: string): string {
-  let remark = "";
-  if (title) {
-    remark = title.slice(0, 40);
-  }
-  if (description && remark.length < 50) {
-    const remaining = 50 - remark.length;
-    remark += (remark ? " - " : "") + description.slice(0, remaining);
-  }
-  return remark.slice(0, 50);
+function createSimpleRemark(title: string): string {
+  return title.slice(0, 50);
 }
