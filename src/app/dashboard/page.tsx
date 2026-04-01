@@ -129,6 +129,7 @@ export default function DashboardPage() {
     title: string;
     remark: string;
     categoryId: string | null;
+    thumbnail?: string | null;
   }) => {
     const method = editingBookmark?.id ? "PUT" : "POST";
     const url = editingBookmark?.id

@@ -46,14 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { url, title, categoryId, remark } = await request.json();
+  const { url, title, categoryId, remark, thumbnail } = await request.json();
 
   if (!url) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });
   }
 
-  // Fetch preview
-  const preview = await fetchPreview(url);
+  // Fetch preview (only if no custom thumbnail provided)
+  const preview = thumbnail ? { title: null, image: null, favicon: null } : await fetchPreview(url);
 
   // Analyze page to generate remark if not provided
   let finalRemark = remark;
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       title: title || preview.title || url,
       categoryId: categoryId || null,
       favicon: preview.favicon,
-      thumbnail: preview.image,
+      thumbnail: thumbnail || preview.image,
       remark: finalRemark || null,
       order: lastBookmark ? lastBookmark.order + 1 : 0,
     },

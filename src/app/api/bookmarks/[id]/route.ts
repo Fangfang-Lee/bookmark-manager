@@ -59,15 +59,20 @@ export async function PUT(
     return NextResponse.json({ error: "Bookmark not found" }, { status: 404 });
   }
 
-  const { url, title, categoryId, remark, refreshPreview, refreshRemark } = await request.json();
+  const { url, title, categoryId, remark, refreshPreview, refreshRemark, thumbnail } = await request.json();
 
-  let thumbnail = bookmark.thumbnail;
+  let finalThumbnail = bookmark.thumbnail;
   let favicon = bookmark.favicon;
   let finalRemark = bookmark.remark;
 
-  if (refreshPreview || (url && url !== bookmark.url)) {
+  // Handle thumbnail: use provided custom thumbnail, or fetch from preview
+  if (thumbnail !== undefined) {
+    // Custom thumbnail provided (could be null to remove)
+    finalThumbnail = thumbnail;
+  } else if (refreshPreview || (url && url !== bookmark.url)) {
+    // Refresh preview from URL
     const preview = await fetchPreview(url || bookmark.url);
-    thumbnail = preview.image || thumbnail;
+    finalThumbnail = preview.image || finalThumbnail;
     favicon = preview.favicon || favicon;
   }
 
@@ -86,7 +91,7 @@ export async function PUT(
       ...(title && { title }),
       ...(categoryId !== undefined && { categoryId }),
       ...(finalRemark !== undefined && { remark: finalRemark }),
-      thumbnail,
+      thumbnail: finalThumbnail,
       favicon,
     },
   });

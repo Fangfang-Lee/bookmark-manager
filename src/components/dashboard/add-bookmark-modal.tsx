@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 interface Category {
   id: string;
@@ -14,13 +14,14 @@ interface Bookmark {
   title: string;
   remark?: string | null;
   categoryId?: string | null;
+  thumbnail?: string | null;
 }
 
 interface Props {
   categories: Category[];
   bookmark?: Bookmark;
   onClose: () => void;
-  onSave: (data: { url: string; title: string; remark: string; categoryId: string | null }) => void;
+  onSave: (data: { url: string; title: string; remark: string; categoryId: string | null; thumbnail?: string | null }) => void;
 }
 
 export function AddBookmarkModal({
@@ -35,8 +36,10 @@ export function AddBookmarkModal({
   const [categoryId, setCategoryId] = useState(
     bookmark?.categoryId || ""
   );
+  const [thumbnail, setThumbnail] = useState<string | null>(bookmark?.thumbnail || null);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAnalyze = async () => {
     if (!url) return;
@@ -63,6 +66,38 @@ export function AddBookmarkModal({
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setThumbnail(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setThumbnail(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -71,6 +106,7 @@ export function AddBookmarkModal({
       title,
       remark,
       categoryId: categoryId || null,
+      thumbnail,
     });
   };
 
@@ -142,6 +178,49 @@ export function AddBookmarkModal({
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Cover Image</label>
+            <div className="space-y-2">
+              {thumbnail ? (
+                <div className="relative">
+                  <img
+                    src={thumbnail}
+                    alt="Cover preview"
+                    className="w-full h-32 object-cover rounded-md border"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-50"
+                >
+                  <div className="text-center text-gray-500">
+                    <svg className="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span className="text-sm">Click to upload image</span>
+                  </div>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-500">
+                Supported: JPG, PNG, GIF (max 5MB)
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
