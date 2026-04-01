@@ -5,51 +5,51 @@ interface AnalyzeResult {
 }
 
 /**
+ * Fetch page content using Jina.ai Reader (better for antibot sites)
+ */
+async function fetchPageContent(url: string): Promise<{ title: string; description: string }> {
+  try {
+    const response = await axios.get(`https://r.jina.ai/${url}`, {
+      headers: {
+        "Accept": "text/plain",
+      },
+      timeout: 15000,
+    });
+
+    const content = response.data as string;
+
+    // Extract title from markdown (first # heading)
+    const titleMatch = content.match(/^#\s+(.+?)(?:\s*\|.+)?$/m);
+    const title = titleMatch ? titleMatch[1].trim() : "";
+
+    // Extract description from first paragraph after title
+    const lines = content.split("\n").filter((line: string) => line.trim() && !line.startsWith("#") && !line.startsWith("[") && !line.startsWith("!"));
+    const description = lines[0]?.trim() || "";
+
+    return { title, description };
+  } catch (error) {
+    console.error("Jina.ai fetch error:", error);
+    return { title: "", description: "" };
+  }
+}
+
+/**
  * Analyze a webpage and generate a brief remark (50 chars max)
- * Uses the page title and description to create a summary
+ * Uses Jina.ai Reader to get page content, then Claude AI to generate summary
  */
 export async function analyzePage(url: string): Promise<AnalyzeResult> {
   try {
-    // First, try to get page metadata using Microlink (which we already use for preview)
-    const apiUrl = process.env.PREVIEW_API_URL || "https://api.microlink.io";
-    const apiKey = process.env.PREVIEW_API_KEY;
+    // Fetch page content using Jina.ai Reader
+    const { title, description } = await fetchPageContent(url);
 
-    const params: Record<string, string> = {
-      url,
-      palette: "true",
-    };
-
-    if (apiKey) {
-      params.accessKey = apiKey;
+    // If we have AI API key, use it to generate a remark
+    if (process.env.AI_API_KEY) {
+      const remark = await generateRemarkWithAI(title, description, url);
+      return { remark };
     }
 
-    const response = await axios.get(apiUrl, { params });
-
-    if (response.data?.data) {
-      const data = response.data.data;
-      const title = data.title || "";
-      const description = data.description || "";
-
-      // If we have AI API key, use it to generate a remark
-      if (process.env.AI_API_KEY) {
-        const remark = await generateRemarkWithAI(title, description, url);
-        return { remark };
-      }
-
-      // Otherwise, create a simple remark from title/description
-      let remark = "";
-      if (title) {
-        remark = title.slice(0, 40);
-      }
-      if (description && remark.length < 50) {
-        const remaining = 50 - remark.length;
-        remark += (remark ? " - " : "") + description.slice(0, remaining);
-      }
-
-      return { remark: remark.slice(0, 50) };
-    }
-
-    return { remark: "" };
+    // Otherwise, create a simple remark from title/description
+    return { remark: createSimpleRemark(title, description) };
   } catch (error) {
     console.error("Page analysis error:", error);
     return { remark: "" };
