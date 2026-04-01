@@ -22,14 +22,15 @@ async function fetchPageContent(url: string): Promise<{ title: string; content: 
     const titleMatch = rawContent.match(/^#\s+(.+?)(?:\s*\|.+)?$/m);
     const title = titleMatch ? titleMatch[1].trim() : "";
 
-    // Get first 500 chars of meaningful content for AI analysis
+    // Extract meaningful content for AI analysis
+    // Keep headings and text, only remove images and navigation noise
     const cleanedContent = rawContent
       .replace(/!\[.*?\]\(.*?\)/g, "") // Remove images
-      .replace(/\[.*?\]\(.*?\)/g, "") // Remove links
-      .replace(/^#+\s.*$/gm, "") // Remove headings
-      .replace(/\n+/g, " ") // Replace newlines with space
+      .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1") // Keep link text, remove URLs
+      .replace(/^(Languages|Solutions|Product|Docs|Pricing|Blog|Log in|Sign up|Enterprise|Menu|Search|Navigation)\s*$/gim, "") // Remove nav items
+      .replace(/\n{2,}/g, "\n") // Collapse multiple newlines
       .trim()
-      .slice(0, 500);
+      .slice(0, 800); // Increased to 800 chars for better context
 
     return { title, content: cleanedContent };
   } catch (error) {
@@ -82,11 +83,11 @@ async function generateRemarkWithAI(
       apiUrl,
       {
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 100,
+        max_tokens: 150,
         messages: [
           {
             role: "user",
-            content: `简洁介绍这个网站的核心功能，不超过30字，直接输出结果。\n\n网站: ${title}\n简介: ${content}`,
+            content: `用一句话介绍这个网站的核心功能和价值，突出它能帮助用户做什么，不超过50字。\n\n网站: ${title}\n内容: ${content}`,
           },
         ],
       },
@@ -102,8 +103,8 @@ async function generateRemarkWithAI(
     // Claude API response format: { content: [{ type: "text", text: "..." }] }
     if (response.data?.content?.[0]?.text) {
       let remark = response.data.content[0].text.trim();
-      if (remark.length > 50) {
-        remark = remark.slice(0, 47) + "...";
+      if (remark.length > 60) {
+        remark = remark.slice(0, 57) + "...";
       }
       return remark;
     }
