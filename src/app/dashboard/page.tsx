@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { CategoryList } from "@/components/dashboard/category-list";
 import { CategoryModal } from "@/components/dashboard/category-modal";
 import { BookmarkCard } from "@/components/dashboard/bookmark-card";
@@ -168,6 +169,26 @@ export default function DashboardPage() {
     fetchBookmarks();
   };
 
+  const handleReorderCategories = async (categoryIds: string[]) => {
+    // Optimistic update
+    const reorderedCategories = categoryIds.map((id) =>
+      categories.find((c) => c.id === id)!
+    );
+    setCategories(reorderedCategories);
+
+    // Save to server
+    const res = await fetch("/api/categories", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ categoryIds }),
+    });
+
+    if (!res.ok) {
+      // Revert on error
+      fetchCategories();
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -187,6 +208,13 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">My Bookmarks</h1>
           <div className="flex items-center gap-4">
+            <Link
+              href="/world"
+              className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+            >
+              <span>🌍</span>
+              <span>世界</span>
+            </Link>
             <span className="text-sm text-gray-600">{session.user?.email}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
@@ -245,6 +273,7 @@ export default function DashboardPage() {
             setEditingCategory(category);
             setShowCategoryModal(true);
           }}
+          onReorder={handleReorderCategories}
         />
 
         {/* Bookmarks grid */}
